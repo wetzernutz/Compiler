@@ -55,8 +55,9 @@ class ParserTest {
      * {@link java.io.PrintStream#println()} (System.out is the standard output stream as type PrintStream)
      * as usual, it would use a Stream that has the data defined in our own custom {@link PrintStream}.
      * We would later use {@link PrintStream#toString() toString} to fetch and verify the output.
-     * @see     java.io.PrintStream#toString()
-     * @see     java.io.PrintStream#println()
+     *
+     * @see java.io.PrintStream#toString()
+     * @see java.io.PrintStream#println()
      */
     @BeforeAll
     static void setUpStreams() {
@@ -83,6 +84,7 @@ class ParserTest {
     /**
      * Sets up the inputStream with a predefined input to mimic a user's input.
      * Used to mimic the input fetched by {@link java.io.InputStream#read() System.in.read()}.
+     *
      * @param input the input that is expected to be 'read' from the user.
      */
     private void setInputStream(String input) {
