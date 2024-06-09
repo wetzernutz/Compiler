@@ -205,7 +205,7 @@ class Parser {
      * </pre></blockquote>
      * <p> Simply matches a digit lookahead.</p>
      *
-     * @throws IOException – if an I/ O error occurs
+     * @throws IOException if an I/ O error occurs
      * @throws Error       syntax error when lookahead is not a digit
      */
     void term() throws IOException, Error {

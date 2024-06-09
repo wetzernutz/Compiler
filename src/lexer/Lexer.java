@@ -10,8 +10,7 @@ import java.util.Hashtable;
  * output {@link Token}s representing these lexemes.
  * The task of a lexical analyzer is to read a stream of characters making
  * up a program and output a token stream.
- * <p>
- * Given the following sequence of characters:
+ * <p>Conceptually, given the following sequence of characters:
  * <pre>{@code
  * "position = initial + rate * 60"
  * }</pre>
@@ -31,7 +30,7 @@ import java.util.Hashtable;
  * </p>
  * <p>Implementation:
  * <ul>
- * <li>peek is implemented as an int(ascii codepoint representation), -1 denotes the EOF.</li>
+ * <li>peek is implemented as an int(ascii decimal representation), -1 denotes the EOF.</li>
  * <li>Identifiers(with tag as {@link Tag#ID}) and reserved words(with tag as {@link Tag#FALSE} etc) are implemented
  * as a {@link Word Word(int tag, String lexeme)}
  * class which extends this Token class. </li>
@@ -124,10 +123,12 @@ public class Lexer {
      * <li>Returns a special {@link Token} with tag as {@link Tag#EOF} no tokens left to read.</li>
      * </ul></p>
      *
-     * @return
-     * @throws IOException
+     * @return the next Token representing the next lexeme.
+     * A special Token with {@link Tag#EOF} is returned when end of file is reached.
+     * @throws IOException if an I/ O error occurs.
+     * @throws Error       If an Undefined Character is read.
      */
-    public Token scan() throws IOException {
+    public Token scan() throws IOException, Error {
         skipWhiteSpace();
         if (Character.isDigit(peek)) {
             return scanNum();
@@ -135,14 +136,27 @@ public class Lexer {
         if (Character.isLetter(peek)) {
             return scanWord();
         }
-        if (peek != -1) {
+        if (peek >= 0 && peek <= 255) {
             return scanOperator();
         }
-
-        peek = ' ';
-        return new Token(Tag.EOF);
+        if (peek == -1) {
+            peek = ' ';
+            return new Token(Tag.EOF);
+        }
+        throw new Error(String.format("Undefined Character: '%s'", peek));
     }
 
+    /**
+     * Moves the peek forward continuously when encountering whitespace.
+     * Stops at the first occurrence of a character that is not:
+     * <ul>
+     * <li>{@code '\t'}</li>
+     * <li>{@code ' '}</li>
+     * <li>{@code '\n'}</li>, also updates line count.
+     * </ul>
+     *
+     * @throws IOException if an I/ O error occurs.
+     */
     private void skipWhiteSpace() throws IOException {
         for (; ; peek = System.in.read()) {
             if (peek == (int) ' ' || peek == (int) '\t') continue;
@@ -151,6 +165,13 @@ public class Lexer {
         }
     }
 
+    /**
+     * Continuously reads digits from the standard input stream to form a number.
+     * Only recognizes positive integers, signs are not supported as of now.
+     *
+     * @return the number scanned.
+     * @throws IOException if an I/ O error occurs.
+     */
     private @NotNull Num scanNum() throws IOException {
         int v = 0;
         do {
@@ -160,6 +181,13 @@ public class Lexer {
         return new Num(v);
     }
 
+    /**
+     * Continuously reads letters from the standard input stream to form a word.
+     * Stops at the first encounter of a non-alphabet.
+     *
+     * @return the Word representing the lexeme.
+     * @throws IOException if an I/ O error occurs.
+     */
     private @NotNull Word scanWord() throws IOException {
         StringBuilder b = new StringBuilder();
         do {
@@ -171,6 +199,13 @@ public class Lexer {
         return getReservedWordOrIdentifier(s);
     }
 
+    /**
+     * Retrieves the Word from the String table.
+     * A new entry is added to the String table if the String Table does not contain it.
+     *
+     * @param s the lexeme to retrieve.
+     * @return the Word representing the lexeme.
+     */
     private @NotNull Word getReservedWordOrIdentifier(String s) {
         Word w = (Word) words.get(s);
         if (w != null)
@@ -181,6 +216,16 @@ public class Lexer {
         return w;
     }
 
+    /**
+     * Scans the next character and simply returns the Token representing that character.
+     * The character itself is used as the tag of the {@link Token}. <br>
+     * <p>Usage Example:
+     * the token <*> is represented as a Token((int)'*');
+     * </p>
+     *
+     * @return the Token representing the character.
+     * @throws IOException if an I/ O error occurs.
+     */
     private @NotNull Token scanOperator() throws IOException {
         Token t = new Token(peek);
         peek = System.in.read();
