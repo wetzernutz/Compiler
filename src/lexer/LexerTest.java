@@ -1,5 +1,6 @@
 package lexer;
 
+import org.junit.Ignore;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
@@ -64,7 +65,6 @@ public class LexerTest {
         setInput(input);
 
         Token t = lexer.scan();
-        Token var = t;
         Assertions.assertInstanceOf(Word.class, t);
         Assertions.assertEquals(t.tag, Tag.ID);
         Assertions.assertEquals("var", ((Word) t).lexeme);
@@ -97,12 +97,12 @@ public class LexerTest {
 
         Token t = lexer.scan();
         Assertions.assertInstanceOf(Word.class, t);
-        Assertions.assertEquals(((Word) t).tag, Tag.TRUE);
+        Assertions.assertEquals(t.tag, Tag.TRUE);
         Assertions.assertEquals(((Word) t).lexeme, "true");
 
         t = lexer.scan();
         Assertions.assertInstanceOf(Word.class, t);
-        Assertions.assertEquals(((Word) t).tag, Tag.FALSE);
+        Assertions.assertEquals(t.tag, Tag.FALSE);
         Assertions.assertEquals(((Word) t).lexeme, "false");
     }
 
@@ -120,7 +120,7 @@ public class LexerTest {
 
         Assertions.assertEquals(12, ((Num) num).value);
 
-        Assertions.assertEquals(((Word) reserved).tag, Tag.TRUE);
+        Assertions.assertEquals(reserved.tag, Tag.TRUE);
         Assertions.assertEquals(((Word) reserved).lexeme, "true");
     }
 
@@ -133,7 +133,7 @@ public class LexerTest {
         Token t;
         for (char c : chars) {
             t = lexer.scan();
-            Assertions.assertEquals(t.tag, (int) c);
+            Assertions.assertEquals(t.tag, c);
         }
     }
 
@@ -169,5 +169,54 @@ public class LexerTest {
 
         t = lexer.scan();
         Assertions.assertEquals(Tag.EOF, t.tag);
+    }
+
+    @Test
+    void testIgnoreInlineCommentAndEOF() throws IOException {
+        String input = "//this is a comment";
+        setInput(input);
+
+        // the comment is ignored and EOF is reached.
+        Token t = lexer.scan();
+        Assertions.assertEquals(t.tag, Tag.EOF);
+    }
+
+    @Test
+    void testIgnoreInlineCommentAndReadNextToken() throws IOException {
+        String input = "//comments ... \n 12";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(t.tag, Tag.NUM);
+        Assertions.assertEquals(((Num) t).value, 12);
+    }
+
+    @Test
+    void testIgnoreMultilineCommentAndEOF() throws IOException {
+        String input = "/* line1 \n line2 \n */";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(t.tag, Tag.EOF);
+    }
+
+    @Test
+    void testIgnoreMultilineCommentAndReadNextToken() throws IOException {
+        String input = "/* beep bop \n ... \n\n   */\n bob";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(t.tag, Tag.ID);
+        Assertions.assertEquals(((Word) t).lexeme, "bob");
+    }
+
+    @Test
+    void testIgnoreMultilineAndInlineComment() throws IOException {
+        String input = "    /*multiline-comments ... \n line1 \n line2 \n */\n //inline-comments \n 12";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(12, ((Num) t).value);
     }
 }

@@ -32,15 +32,29 @@ public class Postfix {
 //        System.out.println((char) pp.read());
 //        System.out.println(pp.read());
 
-        Lexer lexer = new Lexer(System.in);
+//        Lexer lexer = new Lexer(System.in);
         // System.in is set BEFORE the new ByteArrayInputStream replaces the original. Meaning the lexer is reading from the original InputStream.
-        ByteArrayInputStream bats = new ByteArrayInputStream("abc".getBytes());
-        System.setIn(bats);
+
 //        Lexer lexer = new Lexer(System.in);
 
 //        System.in.read();
 
-        System.out.println(((Word) lexer.scan()).lexeme);
+//        System.out.println(((Word) lexer.scan()).lexeme);
+
+        ByteArrayInputStream bats = new ByteArrayInputStream("abcdefg".getBytes());
+        System.setIn(bats);
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int peek = br.read();
+//        br.mark(1);
+//        System.out.println((char) br.read());
+//        br.reset();
+//        System.out.println((char) br.read());
+//        br.read();
+//        br.read();
+//        br.read();
+//        br.reset();
+//        System.out.println((char) br.read());
+
 
     }
 }

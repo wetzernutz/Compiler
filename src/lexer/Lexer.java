@@ -127,8 +127,16 @@ public class Lexer {
      * -1 is returned when EOF.
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private int read() throws IOException {
+    private int readNextChar() throws IOException {
         return bufferedInputStream.read();
+    }
+
+    private void markBuffer(int readLimit) throws IOException {
+        bufferedInputStream.mark(readLimit);
+    }
+
+    private void resetBufferToMark() throws IOException {
+        bufferedInputStream.reset();
     }
 
     /**
@@ -155,7 +163,7 @@ public class Lexer {
      * @throws Error       If an Undefined Character is read.
      */
     public Token scan() throws IOException, Error {
-        skipWhiteSpace();
+        skipIgnoredItems();
         if (Character.isDigit(peek)) {
             return scanNum();
         }
@@ -173,21 +181,39 @@ public class Lexer {
     }
 
     /**
-     * Moves the peek forward continuously when encountering whitespace.
-     * Stops at the first occurrence of a character that is not:
+     * Moves the peek forward continuously when encountering characters that should be ignored.
+     * Skips all characters that are:
      * <ul>
      * <li>{@code '\t'}</li>
      * <li>{@code ' '}</li>
      * <li>{@code '\n'}</li>, also updates line count.
+     * <li>inline-comments starting from //
+     * <li>multiline comments starting from /* and ending with *{@literal /}
      * </ul>
      *
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private void skipWhiteSpace() throws IOException {
-        for (; ; peek = read()) {
-            if (peek == (int) ' ' || peek == (int) '\t') continue;
-            else if (peek == (int) '\n') line += 1;
-            else break;
+    private void skipIgnoredItems() throws IOException {
+        for (; ; peek = readNextChar()) {
+            if (peek == ' ' || peek == '\t') continue;
+            else if (peek == '\n') line += 1;
+            else if (peek == '/') {
+                markBuffer(1);
+                int readAhead = readNextChar();
+                if (readAhead == '/') {
+                    while (peek != -1 && peek != '\n') {
+                        peek = readNextChar();
+                    }
+                } else if (readAhead == '*') {
+                    while (peek != -1) {
+                        if (peek == '*' && readNextChar() == '/') break;
+                        peek = readNextChar();
+                    }
+                } else {
+                    resetBufferToMark();
+                    break;
+                }
+            } else break;
         }
     }
 
@@ -202,7 +228,7 @@ public class Lexer {
         int v = 0;
         do {
             v = v * 10 + Character.digit(peek, 10);
-            peek = read();
+            peek = readNextChar();
         } while (Character.isDigit(peek));
         return new Num(v);
     }
@@ -218,7 +244,7 @@ public class Lexer {
         StringBuilder b = new StringBuilder();
         do {
             b.append((char) peek);
-            peek = read();
+            peek = readNextChar();
         } while (Character.isLetter(peek));
         String s = b.toString();
 
@@ -254,7 +280,7 @@ public class Lexer {
      */
     private @NotNull Token scanOperator() throws IOException {
         Token t = new Token(peek);
-        peek = read();
+        peek = readNextChar();
         return t;
     }
 }
