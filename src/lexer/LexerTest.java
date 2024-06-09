@@ -1,6 +1,5 @@
 package lexer;
 
-import org.junit.Ignore;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
@@ -44,7 +43,7 @@ public class LexerTest {
         Assertions.assertEquals(1234567890, ((Num) t).value);
 
         t = lexer.scan();
-        Assertions.assertEquals(t.tag, Tag.EOF);
+        Assertions.assertEquals(Tag.EOF, t.tag);
     }
 
     @Test
@@ -97,8 +96,8 @@ public class LexerTest {
 
         Token t = lexer.scan();
         Assertions.assertInstanceOf(Word.class, t);
-        Assertions.assertEquals(t.tag, Tag.TRUE);
-        Assertions.assertEquals(((Word) t).lexeme, "true");
+        Assertions.assertEquals(Tag.TRUE, t.tag);
+        Assertions.assertEquals("true", ((Word) t).lexeme);
 
         t = lexer.scan();
         Assertions.assertInstanceOf(Word.class, t);
@@ -120,8 +119,8 @@ public class LexerTest {
 
         Assertions.assertEquals(12, ((Num) num).value);
 
-        Assertions.assertEquals(reserved.tag, Tag.TRUE);
-        Assertions.assertEquals(((Word) reserved).lexeme, "true");
+        Assertions.assertEquals(Tag.TRUE, reserved.tag);
+        Assertions.assertEquals("true", ((Word) reserved).lexeme);
     }
 
     @Test
@@ -133,7 +132,7 @@ public class LexerTest {
         Token t;
         for (char c : chars) {
             t = lexer.scan();
-            Assertions.assertEquals(t.tag, c);
+            Assertions.assertEquals(c, t.tag);
         }
     }
 
@@ -144,28 +143,28 @@ public class LexerTest {
 
         Token t = lexer.scan();
         Assertions.assertInstanceOf(Num.class, t);
-        Assertions.assertEquals(((Num) t).value, 1);
+        Assertions.assertEquals(1, ((Num) t).value);
 
         t = lexer.scan();
-        Assertions.assertEquals(t.tag, '+');
-
-        t = lexer.scan();
-        Assertions.assertInstanceOf(Num.class, t);
-        Assertions.assertEquals(((Num) t).value, 2);
-
-        t = lexer.scan();
-        Assertions.assertEquals(t.tag, '-');
+        Assertions.assertEquals('+', t.tag);
 
         t = lexer.scan();
         Assertions.assertInstanceOf(Num.class, t);
-        Assertions.assertEquals(((Num) t).value, 30);
+        Assertions.assertEquals(2, ((Num) t).value);
 
         t = lexer.scan();
-        Assertions.assertEquals(t.tag, '/');
+        Assertions.assertEquals('-', t.tag);
 
         t = lexer.scan();
         Assertions.assertInstanceOf(Num.class, t);
-        Assertions.assertEquals(((Num) t).value, 2);
+        Assertions.assertEquals(30, ((Num) t).value);
+
+        t = lexer.scan();
+        Assertions.assertEquals('/', t.tag);
+
+        t = lexer.scan();
+        Assertions.assertInstanceOf(Num.class, t);
+        Assertions.assertEquals(2, ((Num) t).value);
 
         t = lexer.scan();
         Assertions.assertEquals(Tag.EOF, t.tag);
@@ -178,7 +177,7 @@ public class LexerTest {
 
         // the comment is ignored and EOF is reached.
         Token t = lexer.scan();
-        Assertions.assertEquals(t.tag, Tag.EOF);
+        Assertions.assertEquals(Tag.EOF, t.tag);
     }
 
     @Test
@@ -187,8 +186,8 @@ public class LexerTest {
         setInput(input);
 
         Token t = lexer.scan();
-        Assertions.assertEquals(t.tag, Tag.NUM);
-        Assertions.assertEquals(((Num) t).value, 12);
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(12, ((Num) t).value);
     }
 
     @Test
@@ -197,7 +196,7 @@ public class LexerTest {
         setInput(input);
 
         Token t = lexer.scan();
-        Assertions.assertEquals(t.tag, Tag.EOF);
+        Assertions.assertEquals(Tag.EOF, t.tag);
     }
 
     @Test
@@ -206,8 +205,8 @@ public class LexerTest {
         setInput(input);
 
         Token t = lexer.scan();
-        Assertions.assertEquals(t.tag, Tag.ID);
-        Assertions.assertEquals(((Word) t).lexeme, "bob");
+        Assertions.assertEquals(Tag.ID, t.tag);
+        Assertions.assertEquals("bob", ((Word) t).lexeme);
     }
 
     @Test

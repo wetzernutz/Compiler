@@ -88,6 +88,7 @@ import java.util.Hashtable;
 public class Lexer {
     public int line;
     private int peek;
+    private int readAhead;
     private Hashtable<String, Token> words;
     private BufferedInputStream bufferedInputStream;
 
@@ -131,7 +132,7 @@ public class Lexer {
         return bufferedInputStream.read();
     }
 
-    private void markBuffer(int readLimit) throws IOException {
+    private void markBuffer(int readLimit) {
         bufferedInputStream.mark(readLimit);
     }
 
@@ -198,22 +199,68 @@ public class Lexer {
             if (peek == ' ' || peek == '\t') continue;
             else if (peek == '\n') line += 1;
             else if (peek == '/') {
-                markBuffer(1);
-                int readAhead = readNextChar();
-                if (readAhead == '/') {
-                    while (peek != -1 && peek != '\n') {
-                        peek = readNextChar();
-                    }
-                } else if (readAhead == '*') {
-                    while (peek != -1) {
-                        if (peek == '*' && readNextChar() == '/') break;
-                        peek = readNextChar();
-                    }
-                } else {
-                    resetBufferToMark();
-                    break;
-                }
+                boolean isComment = detectAndSkipComments();
+                if (!isComment) break;
             } else break;
+        }
+    }
+
+    /**
+     * Skips inline and multiline comments when peek suggests a possible comment.
+     * <p>Used when peek is {@code '/'}, the next read ahead would determine what type of comments it is:
+     * <ul>
+     * <li>read ahead is {@code '/'}, is a inline comment {@code '//'}.</li>
+     * <li>read ahead is {@code '*'}, is a multiline comment {@code '/*'}.</li>
+     * <li>else it is <b>not</b> a comment. Returns False for the result of the skip comment execution.</li>
+     * </ul>
+     * </p>
+     *
+     * @return True if a comment is found and skipped. False if it is not a comment.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
+    private boolean detectAndSkipComments() throws IOException {
+        assert peek == '/' : "Only called when peek might a multiline comment";
+
+        markBuffer(1);
+        readAhead = readNextChar();
+        switch (readAhead) {
+            case '/':
+                skipUntilEndInlineComment();
+                break;
+            case '*':
+                skipUntilEndMultiComment();
+                break;
+            default:
+                resetBufferToMark();
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * Called in {@link #detectAndSkipComments()} to skip characters and ignore the rest of the multiline comment.
+     *
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
+    private void skipUntilEndMultiComment() throws IOException {
+        assert peek == '/' && readAhead == '*' : "Only called when peek is a multiline comment";
+
+        while (peek != -1) {
+            if (peek == '*' && readNextChar() == '/') break;
+            peek = readNextChar();
+        }
+    }
+
+    /**
+     * Called in {@link #detectAndSkipComments()} to skip characters and ignore the rest of the inline comment.
+     *
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
+    private void skipUntilEndInlineComment() throws IOException {
+        assert peek == '/' && readAhead == '/' : "Only called when peek is a inline comment";
+
+        while (peek != -1 && peek != '\n') {
+            peek = readNextChar();
         }
     }
 
