@@ -5,22 +5,35 @@ import org.junit.jupiter.api.*;
 import java.io.*;
 
 public class LexerTest {
-    private static Lexer lexer;
+    private Lexer lexer;
+    private static InputStream originalInputStream;
 
     @BeforeAll
-    static void setup() {
-        lexer = new Lexer();
+    static void initialise() {
+        originalInputStream = System.in;
+    }
+
+    @AfterAll
+    static void restore() {
+        System.setIn(originalInputStream);
     }
 
     @BeforeEach
-    void reset() {
-        lexer.resetAndClearData();
+    void setup() {
+        lexer = new Lexer(System.in);
+    }
+
+    void setInput(String input) {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(input.getBytes());
+        System.setIn(byteArrayInputStream);
+        lexer.setInputStream(byteArrayInputStream);
     }
 
     @Test
     void testScanNum() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("   12     1234567890".getBytes());
-        System.setIn(inputStream);
+        String input = "   12     1234567890";
+        setInput(input);
+
         Token t = lexer.scan();
         Assertions.assertInstanceOf(Num.class, t);
         Assertions.assertEquals(12, ((Num) t).value);
@@ -35,8 +48,8 @@ public class LexerTest {
 
     @Test
     void testScanEmpty() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("    ".getBytes());
-        System.setIn(inputStream);
+        String input = "    ";
+        setInput(input);
 
         Token t = lexer.scan();
         Assertions.assertEquals(Tag.EOF, t.tag);
@@ -47,8 +60,8 @@ public class LexerTest {
 
     @Test
     void testScanIdentifier() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("var bob car".getBytes());
-        System.setIn(inputStream);
+        String input = "var bob car";
+        setInput(input);
 
         Token t = lexer.scan();
         Token var = t;
@@ -69,8 +82,9 @@ public class LexerTest {
 
     @Test
     void testScanSameIdentifierTokenFromStringTable() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("var   var".getBytes());
-        System.setIn(inputStream);
+        String input = "var   var";
+        setInput(input);
+
         Token var1 = lexer.scan();
         Token var2 = lexer.scan();
         Assertions.assertEquals(var1, var2);
@@ -78,8 +92,8 @@ public class LexerTest {
 
     @Test
     void testScanReservedWords() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("true false".getBytes());
-        System.setIn(inputStream);
+        String input = "true false";
+        setInput(input);
 
         Token t = lexer.scan();
         Assertions.assertInstanceOf(Word.class, t);
@@ -94,8 +108,9 @@ public class LexerTest {
 
     @Test
     void testScanDiffTokens() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("var 12 true".getBytes());
-        System.setIn(inputStream);
+        String input = "var 12 true";
+        setInput(input);
+
         Token id = lexer.scan();
         Token num = lexer.scan();
         Token reserved = lexer.scan();
@@ -112,8 +127,9 @@ public class LexerTest {
     @Test
     void testOperators() throws IOException {
         char[] chars = {'+', '*', '-', '/'};
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("+ * - /".getBytes());
-        System.setIn(inputStream);
+        String input = "+ * - /";
+        setInput(input);
+
         Token t;
         for (char c : chars) {
             t = lexer.scan();
@@ -123,8 +139,8 @@ public class LexerTest {
 
     @Test
     void testScanArithmetic() throws IOException {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream("1 +2 - 30   / 2".getBytes());
-        System.setIn(inputStream);
+        String input = "1 +2 - 30   / 2";
+        setInput(input);
 
         Token t = lexer.scan();
         Assertions.assertInstanceOf(Num.class, t);

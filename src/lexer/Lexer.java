@@ -2,7 +2,9 @@ package lexer;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Hashtable;
 
 /**
@@ -87,22 +89,46 @@ public class Lexer {
     public int line;
     private int peek;
     private Hashtable<String, Token> words;
+    private BufferedInputStream bufferedInputStream;
 
     /**
-     * Resets the lexer and clears the historical data. Will also initialise all reserve words into
-     * the String Table.<br>
-     * Warning: This includes <b>clears the Words stored in the String Table</b>, call with caution.
+     * Creates a Lexical Analyzer that reads from an {@link InputStream} like
+     * {@link System#in}.
+     *
+     * @param inputStream the input stream to be read.
      */
-    public void resetAndClearData() {
+    public Lexer(InputStream inputStream) {
         this.line = 1;
         this.peek = ' ';
         this.words = new Hashtable<>();
+        setInputStream(inputStream);
         reserve(new Word(Tag.TRUE, "true"));
         reserve(new Word(Tag.FALSE, "false"));
     }
 
-    public Lexer() {
-        resetAndClearData();
+    /**
+     * Setter injection to set and replace the {@link InputStream}.
+     * Can be used to change the input stream into a custom stream containing
+     * TestInput or FileData etc.
+     *
+     * @param inputStream the input stream to be scanned by the lexical analyzer.
+     */
+    public void setInputStream(InputStream inputStream) {
+        this.bufferedInputStream = new BufferedInputStream(inputStream);
+    }
+
+    /**
+     * Reads the next byte from the {@link BufferedInputStream}.
+     * <p>
+     * Note: this method should be used instead of {@link System#in}'s {@code read} method.
+     * </p>
+     *
+     * @return int the ascii decimal representation of the next char which ranges between [0,255] inclusive.
+     * -1 is returned when EOF.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
+    private int read() throws IOException {
+        return bufferedInputStream.read();
     }
 
     /**
@@ -125,7 +151,7 @@ public class Lexer {
      *
      * @return the next Token representing the next lexeme.
      * A special Token with {@link Tag#EOF} is returned when end of file is reached.
-     * @throws IOException if an I/ O error occurs.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      * @throws Error       If an Undefined Character is read.
      */
     public Token scan() throws IOException, Error {
@@ -155,10 +181,10 @@ public class Lexer {
      * <li>{@code '\n'}</li>, also updates line count.
      * </ul>
      *
-     * @throws IOException if an I/ O error occurs.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
     private void skipWhiteSpace() throws IOException {
-        for (; ; peek = System.in.read()) {
+        for (; ; peek = read()) {
             if (peek == (int) ' ' || peek == (int) '\t') continue;
             else if (peek == (int) '\n') line += 1;
             else break;
@@ -170,13 +196,13 @@ public class Lexer {
      * Only recognizes positive integers, signs are not supported as of now.
      *
      * @return the number scanned.
-     * @throws IOException if an I/ O error occurs.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
     private @NotNull Num scanNum() throws IOException {
         int v = 0;
         do {
             v = v * 10 + Character.digit(peek, 10);
-            peek = System.in.read();
+            peek = read();
         } while (Character.isDigit(peek));
         return new Num(v);
     }
@@ -186,13 +212,13 @@ public class Lexer {
      * Stops at the first encounter of a non-alphabet.
      *
      * @return the Word representing the lexeme.
-     * @throws IOException if an I/ O error occurs.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
     private @NotNull Word scanWord() throws IOException {
         StringBuilder b = new StringBuilder();
         do {
             b.append((char) peek);
-            peek = System.in.read();
+            peek = read();
         } while (Character.isLetter(peek));
         String s = b.toString();
 
@@ -224,11 +250,11 @@ public class Lexer {
      * </p>
      *
      * @return the Token representing the character.
-     * @throws IOException if an I/ O error occurs.
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
     private @NotNull Token scanOperator() throws IOException {
         Token t = new Token(peek);
-        peek = System.in.read();
+        peek = read();
         return t;
     }
 }
