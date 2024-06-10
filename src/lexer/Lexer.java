@@ -128,14 +128,41 @@ public class Lexer {
      * -1 is returned when EOF.
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private int readNextChar() throws IOException {
+    private int readCh() throws IOException {
         return bufferedInputStream.read();
     }
 
+    private boolean readCh(char c) throws IOException {
+        peek = readCh();
+        if (peek != c) return false;
+        peek = ' ';
+        return true;
+    }
+
+    /**
+     * Marks the current position in this input stream.
+     * A subsequent call to the reset method repositions this stream at
+     * the last marked position so that subsequent reads re-read the same bytes.
+     * <p>
+     * The read limit argument tells this input stream to allow that many
+     * bytes to be read before the mark position gets invalidated.
+     * </p>
+     *
+     * @param readLimit the max amount of bytes that the read from the input stream before this mark gets invalidated.
+     */
     private void markBuffer(int readLimit) {
         bufferedInputStream.mark(readLimit);
     }
 
+    /**
+     * Repositions this stream to the position at the time the mark method was last called on this input stream.
+     * <p>
+     * See the general contract of the {@link InputStream#reset() reset} method of {@link InputStream}.
+     * </p>
+     *
+     * @throws IOException if this stream has not been marked or, if the mark has been invalidated,
+     *                     or the stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
     private void resetBufferToMark() throws IOException {
         bufferedInputStream.reset();
     }
@@ -171,8 +198,20 @@ public class Lexer {
         if (Character.isLetter(peek)) {
             return scanWord();
         }
+        
+        switch (peek) {
+            case ('>'):
+                return readCh('=') ? Word.ge : new Token('>');
+            case ('<'):
+                return readCh('=') ? Word.le : new Token('<');
+            case ('='):
+                return readCh('=') ? Word.eq : new Token('=');
+            case ('!'):
+                return readCh('=') ? Word.ne : new Token('!');
+        }
+
         if (peek >= 0 && peek <= 255) {
-            return scanOperator();
+            return scanChar();
         }
         if (peek == -1) {
             peek = ' ';
@@ -195,7 +234,7 @@ public class Lexer {
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
     private void skipIgnoredItems() throws IOException {
-        for (; ; peek = readNextChar()) {
+        for (; ; peek = readCh()) {
             if (peek == ' ' || peek == '\t') continue;
             else if (peek == '\n') line += 1;
             else if (peek == '/') {
@@ -222,7 +261,7 @@ public class Lexer {
         assert peek == '/' : "Only called when peek might a multiline comment";
 
         markBuffer(1);
-        readAhead = readNextChar();
+        readAhead = readCh();
         switch (readAhead) {
             case '/':
                 skipUntilEndInlineComment();
@@ -237,6 +276,12 @@ public class Lexer {
         return true;
     }
 
+    private void skipUntilNewLine() throws IOException {
+        while (peek != -1 && peek != '\n') {
+            peek = readCh();
+        }
+    }
+
     /**
      * Called in {@link #detectAndSkipComments()} to skip characters and ignore the rest of the multiline comment.
      *
@@ -246,8 +291,8 @@ public class Lexer {
         assert peek == '/' && readAhead == '*' : "Only called when peek is a multiline comment";
 
         while (peek != -1) {
-            if (peek == '*' && readNextChar() == '/') break;
-            peek = readNextChar();
+            if (peek == '*' && readCh() == '/') break;
+            peek = readCh();
         }
     }
 
@@ -260,7 +305,7 @@ public class Lexer {
         assert peek == '/' && readAhead == '/' : "Only called when peek is a inline comment";
 
         while (peek != -1 && peek != '\n') {
-            peek = readNextChar();
+            peek = readCh();
         }
     }
 
@@ -275,7 +320,7 @@ public class Lexer {
         int v = 0;
         do {
             v = v * 10 + Character.digit(peek, 10);
-            peek = readNextChar();
+            peek = readCh();
         } while (Character.isDigit(peek));
         return new Num(v);
     }
@@ -291,7 +336,7 @@ public class Lexer {
         StringBuilder b = new StringBuilder();
         do {
             b.append((char) peek);
-            peek = readNextChar();
+            peek = readCh();
         } while (Character.isLetter(peek));
         String s = b.toString();
 
@@ -325,9 +370,9 @@ public class Lexer {
      * @return the Token representing the character.
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private @NotNull Token scanOperator() throws IOException {
+    private @NotNull Token scanChar() throws IOException {
         Token t = new Token(peek);
-        peek = readNextChar();
+        peek = readCh();
         return t;
     }
 }

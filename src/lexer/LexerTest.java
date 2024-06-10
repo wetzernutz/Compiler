@@ -218,4 +218,106 @@ public class LexerTest {
         Assertions.assertEquals(Tag.NUM, t.tag);
         Assertions.assertEquals(12, ((Num) t).value);
     }
+
+    @Test
+    void testRelationalOperatorsLtLe() throws IOException {
+        // < > >= <= != ==
+        String input = " < <= ";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals('<', t.tag);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.LE, t.tag);
+        Assertions.assertEquals("<=", ((Word) t).lexeme);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.EOF, t.tag);
+    }
+
+    @Test
+    void testRelationalOperatorsGtGe() throws IOException {
+        String input = " > >= ";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals('>', t.tag);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.GE, t.tag);
+        Assertions.assertEquals(">=", ((Word) t).lexeme);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.EOF, t.tag);
+    }
+
+    @Test
+    void testRelationalOperatorsAssignEq() throws IOException {
+        String input = " = == ";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals('=', t.tag);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.EQ, t.tag);
+        Assertions.assertEquals("==", ((Word) t).lexeme);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.EOF, t.tag);
+    }
+
+    @Test
+    void testRelationalOperatorsExclamationNe() throws IOException {
+        String input = " ! != ";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals('!', t.tag);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.NE, t.tag);
+        Assertions.assertEquals("!=", ((Word) t).lexeme);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.EOF, t.tag);
+    }
+
+    @Test
+    void testRelationalOperatorsNeNum() throws IOException {
+        String input = " 1!=12 ";
+        setInput(input);
+
+        Token t = lexer.scan();
+
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(1, ((Num) t).value);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.NE, t.tag);
+        Assertions.assertEquals("!=", ((Word) t).lexeme);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(12, ((Num) t).value);
+    }
+
+    @Test
+    void testRelationalOperatorsEqNum() throws IOException {
+        String input = " 1=12 ";
+        setInput(input);
+
+        Token t = lexer.scan();
+
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(1, ((Num) t).value);
+
+        t = lexer.scan();
+        Assertions.assertEquals('=', t.tag);
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(12, ((Num) t).value);
+    }
 }
