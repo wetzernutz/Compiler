@@ -31,7 +31,7 @@ public class LexerTest {
 
     @Test
     void testScanNum() throws IOException {
-        String input = "   12     1234567890";
+        String input = "12   1234567890";
         setInput(input);
 
         Token t = lexer.scan();

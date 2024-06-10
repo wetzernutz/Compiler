@@ -132,6 +132,10 @@ public class Lexer {
         return bufferedInputStream.read();
     }
 
+    private void forwardPeek() throws IOException {
+        peek = readCh();
+    }
+
     private boolean readCh(char c) throws IOException {
         peek = readCh();
         if (peek != c) return false;
@@ -191,14 +195,28 @@ public class Lexer {
      * @throws Error       If an Undefined Character is read.
      */
     public Token scan() throws IOException, Error {
-        skipIgnoredItems();
-        if (Character.isDigit(peek)) {
-            return scanNum();
+        skipWhiteSpace();
+
+        if (peek == '/') {
+            // repeatedly ignore all consecutive inline or multiline comments.
+            while (peek == '/') {
+                // ignores the comment and trailing whitespace.
+                forwardPeek();
+                switch (peek) {
+                    case ('/'):
+                        skipUntilNewLine();
+                        skipWhiteSpace();
+                        break;
+                    case ('*'):
+                        skipUntilEndMultiComment2();
+                        skipWhiteSpace();
+                        break;
+                    default:
+                        return new Token('/');
+                }
+            }
         }
-        if (Character.isLetter(peek)) {
-            return scanWord();
-        }
-        
+
         switch (peek) {
             case ('>'):
                 return readCh('=') ? Word.ge : new Token('>');
@@ -208,6 +226,13 @@ public class Lexer {
                 return readCh('=') ? Word.eq : new Token('=');
             case ('!'):
                 return readCh('=') ? Word.ne : new Token('!');
+        }
+
+        if (Character.isDigit(peek)) {
+            return scanNum();
+        }
+        if (Character.isLetter(peek)) {
+            return scanWord();
         }
 
         if (peek >= 0 && peek <= 255) {
@@ -220,61 +245,14 @@ public class Lexer {
         throw new Error(String.format("Undefined Character: '%s'", peek));
     }
 
-    /**
-     * Moves the peek forward continuously when encountering characters that should be ignored.
-     * Skips all characters that are:
-     * <ul>
-     * <li>{@code '\t'}</li>
-     * <li>{@code ' '}</li>
-     * <li>{@code '\n'}</li>, also updates line count.
-     * <li>inline-comments starting from //
-     * <li>multiline comments starting from /* and ending with *{@literal /}
-     * </ul>
-     *
-     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
-     */
-    private void skipIgnoredItems() throws IOException {
+    private void skipWhiteSpace() throws IOException {
         for (; ; peek = readCh()) {
             if (peek == ' ' || peek == '\t') continue;
             else if (peek == '\n') line += 1;
-            else if (peek == '/') {
-                boolean isComment = detectAndSkipComments();
-                if (!isComment) break;
-            } else break;
+            else break;
         }
     }
 
-    /**
-     * Skips inline and multiline comments when peek suggests a possible comment.
-     * <p>Used when peek is {@code '/'}, the next read ahead would determine what type of comments it is:
-     * <ul>
-     * <li>read ahead is {@code '/'}, is a inline comment {@code '//'}.</li>
-     * <li>read ahead is {@code '*'}, is a multiline comment {@code '/*'}.</li>
-     * <li>else it is <b>not</b> a comment. Returns False for the result of the skip comment execution.</li>
-     * </ul>
-     * </p>
-     *
-     * @return True if a comment is found and skipped. False if it is not a comment.
-     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
-     */
-    private boolean detectAndSkipComments() throws IOException {
-        assert peek == '/' : "Only called when peek might a multiline comment";
-
-        markBuffer(1);
-        readAhead = readCh();
-        switch (readAhead) {
-            case '/':
-                skipUntilEndInlineComment();
-                break;
-            case '*':
-                skipUntilEndMultiComment();
-                break;
-            default:
-                resetBufferToMark();
-                return false;
-        }
-        return true;
-    }
 
     private void skipUntilNewLine() throws IOException {
         while (peek != -1 && peek != '\n') {
@@ -282,30 +260,11 @@ public class Lexer {
         }
     }
 
-    /**
-     * Called in {@link #detectAndSkipComments()} to skip characters and ignore the rest of the multiline comment.
-     *
-     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
-     */
-    private void skipUntilEndMultiComment() throws IOException {
-        assert peek == '/' && readAhead == '*' : "Only called when peek is a multiline comment";
-
+    private void skipUntilEndMultiComment2() throws IOException {
         while (peek != -1) {
-            if (peek == '*' && readCh() == '/') break;
-            peek = readCh();
-        }
-    }
-
-    /**
-     * Called in {@link #detectAndSkipComments()} to skip characters and ignore the rest of the inline comment.
-     *
-     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
-     */
-    private void skipUntilEndInlineComment() throws IOException {
-        assert peek == '/' && readAhead == '/' : "Only called when peek is a inline comment";
-
-        while (peek != -1 && peek != '\n') {
-            peek = readCh();
+            if (peek == '*') {
+                if (readCh('/')) break;
+            } else peek = readCh();
         }
     }
 
