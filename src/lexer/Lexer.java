@@ -88,7 +88,6 @@ import java.util.Hashtable;
 public class Lexer {
     public int line;
     private int peek;
-    private int readAhead;
     private Hashtable<String, Token> words;
     private BufferedInputStream bufferedInputStream;
 
@@ -124,51 +123,33 @@ public class Lexer {
      * Note: this method should be used instead of {@link System#in}'s {@code read} method.
      * </p>
      *
-     * @return int the ascii decimal representation of the next char which ranges between [0,255] inclusive.
-     * -1 is returned when EOF.
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private int readCh() throws IOException {
-        return bufferedInputStream.read();
+    private void readCh() throws IOException {
+        peek = bufferedInputStream.read();
     }
 
-    private void forwardPeek() throws IOException {
-        peek = readCh();
-    }
-
+    /**
+     * Reads the next char and compares the char read with the char provided.
+     * Returns True and sets peek to blank when they match, False otherwise.
+     * Used to help identify composite tokens like >= and !=.
+     * <p>
+     * Setting peek to blank when matching is when crucial since the composite token
+     * should be processed using the boolean result,
+     * and peek should be set to the next char to be processed(blank will be ignored on the next call).
+     * </p>
+     * <p>
+     * Note: peek is set to blank instead of reading next char just in case peek is eof.
+     *
+     * @param c character to expect and compare
+     * @return result of matching
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
     private boolean readCh(char c) throws IOException {
-        peek = readCh();
+        readCh();
         if (peek != c) return false;
         peek = ' ';
         return true;
-    }
-
-    /**
-     * Marks the current position in this input stream.
-     * A subsequent call to the reset method repositions this stream at
-     * the last marked position so that subsequent reads re-read the same bytes.
-     * <p>
-     * The read limit argument tells this input stream to allow that many
-     * bytes to be read before the mark position gets invalidated.
-     * </p>
-     *
-     * @param readLimit the max amount of bytes that the read from the input stream before this mark gets invalidated.
-     */
-    private void markBuffer(int readLimit) {
-        bufferedInputStream.mark(readLimit);
-    }
-
-    /**
-     * Repositions this stream to the position at the time the mark method was last called on this input stream.
-     * <p>
-     * See the general contract of the {@link InputStream#reset() reset} method of {@link InputStream}.
-     * </p>
-     *
-     * @throws IOException if this stream has not been marked or, if the mark has been invalidated,
-     *                     or the stream has been closed by invoking its close() method, or an I/ O error occurs.
-     */
-    private void resetBufferToMark() throws IOException {
-        bufferedInputStream.reset();
     }
 
     /**
@@ -188,32 +169,31 @@ public class Lexer {
      * <li>Leading or Trailing Whitespace is ignored.</li>
      * <li>Returns a special {@link Token} with tag as {@link Tag#EOF} no tokens left to read.</li>
      * </ul></p>
+     * Invariant: all token detection will leave with peek as the next char to be processed,
+     * or until eof is detected.
      *
      * @return the next Token representing the next lexeme.
      * A special Token with {@link Tag#EOF} is returned when end of file is reached.
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
-     * @throws Error       If an Undefined Character is read.
+     * @throws Error       If an Unexpected peek character is read that isn't within the (0~255) range, and not eof(-1).
      */
     public Token scan() throws IOException, Error {
         skipWhiteSpace();
 
-        if (peek == '/') {
-            // repeatedly ignore all consecutive inline or multiline comments.
-            while (peek == '/') {
-                // ignores the comment and trailing whitespace.
-                forwardPeek();
-                switch (peek) {
-                    case ('/'):
-                        skipUntilNewLine();
-                        skipWhiteSpace();
-                        break;
-                    case ('*'):
-                        skipUntilEndMultiComment2();
-                        skipWhiteSpace();
-                        break;
-                    default:
-                        return new Token('/');
-                }
+        // repeatedly ignore all consecutive inline or multiline comments.
+        while (peek == '/') {
+            readCh();
+            switch (peek) {
+                case ('/'):
+                    skipUntilNewLine();
+                    skipWhiteSpace();
+                    break;
+                case ('*'):
+                    skipUntilEndMultiComment();
+                    skipWhiteSpace();
+                    break;
+                default:
+                    return new Token('/');
             }
         }
 
@@ -235,36 +215,62 @@ public class Lexer {
             return scanWord();
         }
 
-        if (peek >= 0 && peek <= 255) {
-            return scanChar();
-        }
         if (peek == -1) {
             peek = ' ';
             return new Token(Tag.EOF);
         }
-        throw new Error(String.format("Undefined Character: '%s'", peek));
+        if (peek >= 0 && peek <= 255) {
+            return scanChar();
+        }
+        throw new Error(String.format("Undefined peek(character): %d('%s')", peek, (char) peek));
     }
 
+    /**
+     * Skips all characters until a white space is detected.
+     * <ul>Valid white space are:
+     * <li>{@code ' '} blank space</li>
+     * <li>{@code '\t'} tabs</li>
+     * <li>{@code '\n'} newline</li>
+     * </ul>
+     *
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
     private void skipWhiteSpace() throws IOException {
-        for (; ; peek = readCh()) {
+        for (; ; readCh()) {
             if (peek == ' ' || peek == '\t') continue;
             else if (peek == '\n') line += 1;
             else break;
         }
     }
 
-
+    /**
+     * Skips until a newline or eof is detected.
+     *
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
     private void skipUntilNewLine() throws IOException {
-        while (peek != -1 && peek != '\n') {
-            peek = readCh();
+        while (peek != '\n' && peek != -1) {
+            readCh();
         }
     }
 
-    private void skipUntilEndMultiComment2() throws IOException {
+    /**
+     * Skips any characters until the end of a multiline comment is detected o eof.
+     * Note: case ('\n') also runs the default case.
+     *
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
+    private void skipUntilEndMultiComment() throws IOException {
+        outerLoop:
         while (peek != -1) {
-            if (peek == '*') {
-                if (readCh('/')) break;
-            } else peek = readCh();
+            switch (peek) {
+                case ('*'):
+                    if (readCh('/')) break outerLoop;
+                case ('\n'):
+                    line += 1;
+                default:
+                    readCh();
+            }
         }
     }
 
@@ -279,7 +285,7 @@ public class Lexer {
         int v = 0;
         do {
             v = v * 10 + Character.digit(peek, 10);
-            peek = readCh();
+            readCh();
         } while (Character.isDigit(peek));
         return new Num(v);
     }
@@ -295,7 +301,7 @@ public class Lexer {
         StringBuilder b = new StringBuilder();
         do {
             b.append((char) peek);
-            peek = readCh();
+            readCh();
         } while (Character.isLetter(peek));
         String s = b.toString();
 
@@ -320,7 +326,8 @@ public class Lexer {
     }
 
     /**
-     * Scans the next character and simply returns the Token representing that character.
+     * Scans the next character that is not recognized as part of a predefined token and
+     * simply returns a new Token representing that character.
      * The character itself is used as the tag of the {@link Token}. <br>
      * <p>Usage Example:
      * the token <*> is represented as a Token((int)'*');
@@ -331,7 +338,7 @@ public class Lexer {
      */
     private @NotNull Token scanChar() throws IOException {
         Token t = new Token(peek);
-        peek = readCh();
+        peek = ' ';
         return t;
     }
 }

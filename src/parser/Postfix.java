@@ -41,19 +41,13 @@ public class Postfix {
 
 //        System.out.println(((Word) lexer.scan()).lexeme);
 
-        ByteArrayInputStream bats = new ByteArrayInputStream("abcdefg".getBytes());
-        System.setIn(bats);
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        int peek = br.read();
-//        br.mark(1);
-//        System.out.println((char) br.read());
-//        br.reset();
-//        System.out.println((char) br.read());
-//        br.read();
-//        br.read();
-//        br.read();
-//        br.reset();
-//        System.out.println((char) br.read());
+//        ByteArrayInputStream bats = new ByteArrayInputStream("abcdefg".getBytes());
+//        System.setIn(bats);
+//        System.out.println((char) System.in.read());
+//        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedInputStream br = new BufferedInputStream(System.in);
+        System.out.println((char) br.read());
+        System.out.println((char) br.read());
 
 
     }
