@@ -179,9 +179,49 @@ public class Lexer {
      */
     public Token scan() throws IOException, Error {
         skipWhiteSpace();
+        ignoreComments();
 
-        // repeatedly ignore all consecutive inline or multiline comments.
+        if (Character.isDigit(peek)) {
+            return scanNum();
+        }
+        if (Character.isLetter(peek)) {
+            return scanWord();
+        }
+
+        return switch (peek) {
+            case ('/') -> {
+                readCh();
+                yield new Token('/');
+            }
+            case ('>') -> readCh('=') ? Word.ge : new Token('>');
+            case ('<') -> readCh('=') ? Word.le : new Token('<');
+            case ('=') -> readCh('=') ? Word.eq : new Token('=');
+            case ('!') -> readCh('=') ? Word.ne : new Token('!');
+            case (-1) -> {
+                peek = ' ';
+                yield new Token(Tag.EOF);
+            }
+            default -> scanChar();
+        };
+    }
+
+    /**
+     * Ignores all consecutive inline or multiline comments.
+     * <p>
+     * Restores the bufferedInputStream and peak if
+     * there are no comments detected anymore (leaves at the state when peek is '/').
+     * </p>
+     * <p> Implementation of marking and reset and restoring state is chosen over returning a division Token
+     * on default is for separation of concerns, better modularity and such that the ignoreComments function
+     * follows the SRP principle.
+     * </p>
+     *
+     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
+     */
+    private void ignoreComments() throws IOException {
+        outerLoop:
         while (peek == '/') {
+            bufferedInputStream.mark(1);
             readCh();
             switch (peek) {
                 case ('/'):
@@ -193,36 +233,11 @@ public class Lexer {
                     skipWhiteSpace();
                     break;
                 default:
-                    return new Token('/');
+                    bufferedInputStream.reset();
+                    peek = '/';
+                    break outerLoop;
             }
         }
-
-        switch (peek) {
-            case ('>'):
-                return readCh('=') ? Word.ge : new Token('>');
-            case ('<'):
-                return readCh('=') ? Word.le : new Token('<');
-            case ('='):
-                return readCh('=') ? Word.eq : new Token('=');
-            case ('!'):
-                return readCh('=') ? Word.ne : new Token('!');
-        }
-
-        if (Character.isDigit(peek)) {
-            return scanNum();
-        }
-        if (Character.isLetter(peek)) {
-            return scanWord();
-        }
-
-        if (peek == -1) {
-            peek = ' ';
-            return new Token(Tag.EOF);
-        }
-        if (peek >= 0 && peek <= 255) {
-            return scanChar();
-        }
-        throw new Error(String.format("Undefined peek(character): %d('%s')", peek, (char) peek));
     }
 
     /**
