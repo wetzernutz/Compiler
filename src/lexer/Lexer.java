@@ -323,7 +323,7 @@ public class Lexer {
             d *= 10;
             readCh();
         }
-        return new Floating(f);
+        return new Real(f);
     }
 
     /**

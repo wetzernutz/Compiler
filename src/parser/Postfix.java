@@ -4,6 +4,7 @@ import lexer.Lexer;
 import lexer.Word;
 
 import java.io.*;
+import java.util.HashMap;
 
 public class Postfix {
     public static void main(String[] args) throws IOException {
@@ -45,10 +46,16 @@ public class Postfix {
 //        System.setIn(bats);
 //        System.out.println((char) System.in.read());
 //        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        BufferedInputStream br = new BufferedInputStream(System.in);
-        System.out.println((char) br.read());
-        System.out.println((char) br.read());
+//        BufferedInputStream br = new BufferedInputStream(System.in);
+//        System.out.println((char) br.read());
+//        System.out.println((char) br.read());
 
+        HashMap<Integer, String> map = new HashMap<>();
+        map.put((int) 'a', "String");
+        map.put((int) '1', "Number");
 
+        System.out.println(map.get((int) 'a'));
+        System.out.println(map.get((int) '1'));
+        System.out.println(map.get((int) '4') == null);
     }
 }

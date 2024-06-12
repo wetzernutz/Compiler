@@ -328,7 +328,7 @@ public class LexerTest {
 
         Token t = lexer.scan();
         Assertions.assertEquals(Tag.REAL, t.tag);
-        Assertions.assertEquals(1.0, ((Floating) t).value);
+        Assertions.assertEquals(1.0, ((Real) t).value);
     }
 
     @Test
@@ -339,7 +339,7 @@ public class LexerTest {
         Token t = lexer.scan();
         Assertions.assertEquals(Tag.REAL, t.tag);
         float a = 0.21f;
-        float b = ((Floating) t).value;
+        float b = ((Real) t).value;
         float precisionRange = 1e-4F;
 
         Assertions.assertTrue(Math.abs(a - b) < precisionRange);
@@ -353,7 +353,7 @@ public class LexerTest {
         Token t = lexer.scan();
         Assertions.assertEquals(Tag.REAL, t.tag);
         float a = 22.213f;
-        float b = ((Floating) t).value;
+        float b = ((Real) t).value;
         float precisionRange = 1e-4F;
         Assertions.assertTrue(Math.abs(a - b) < precisionRange);
     }
@@ -366,7 +366,7 @@ public class LexerTest {
         Token t = lexer.scan();
         Assertions.assertEquals(Tag.REAL, t.tag);
         float a = 132.21f;
-        float b = ((Floating) t).value;
+        float b = ((Real) t).value;
         float precisionRange = 1e-4F;
         Assertions.assertTrue(Math.abs(a - b) < precisionRange);
 
@@ -383,7 +383,7 @@ public class LexerTest {
 
         t = lexer.scan();
         a = .21f;
-        b = ((Floating) t).value;
+        b = ((Real) t).value;
         Assertions.assertTrue(Math.abs(a - b) < precisionRange);
     }
 
