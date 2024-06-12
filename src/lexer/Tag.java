@@ -25,5 +25,5 @@ package lexer;
 public class Tag {
     public final static int
             EOF = -1, NUM = 256, ID = 257, TRUE = 258, FALSE = 259,
-            LE = 260, GE = 261, EQ = 262, NE = 263;
+            LE = 260, GE = 261, EQ = 262, NE = 263, REAL = 264;
 }

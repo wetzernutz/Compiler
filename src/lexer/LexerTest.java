@@ -320,4 +320,71 @@ public class LexerTest {
         Assertions.assertEquals(Tag.NUM, t.tag);
         Assertions.assertEquals(12, ((Num) t).value);
     }
+
+    @Test
+    void testFloatingLeftOnly() throws IOException {
+        String input = " 1. ";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(Tag.REAL, t.tag);
+        Assertions.assertEquals(1.0, ((Floating) t).value);
+    }
+
+    @Test
+    void testFloatingRightOnly() throws IOException {
+        String input = " .21 ";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(Tag.REAL, t.tag);
+        float a = 0.21f;
+        float b = ((Floating) t).value;
+        float precisionRange = 1e-4F;
+
+        Assertions.assertTrue(Math.abs(a - b) < precisionRange);
+    }
+
+    @Test
+    void testFloatSimple() throws IOException {
+        String input = " 22.213";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(Tag.REAL, t.tag);
+        float a = 22.213f;
+        float b = ((Floating) t).value;
+        float precisionRange = 1e-4F;
+        Assertions.assertTrue(Math.abs(a - b) < precisionRange);
+    }
+
+    @Test
+    void testFloating() throws IOException {
+        String input = " 132.21+1/.21";
+        setInput(input);
+
+        Token t = lexer.scan();
+        Assertions.assertEquals(Tag.REAL, t.tag);
+        float a = 132.21f;
+        float b = ((Floating) t).value;
+        float precisionRange = 1e-4F;
+        Assertions.assertTrue(Math.abs(a - b) < precisionRange);
+
+        t = lexer.scan();
+        Assertions.assertEquals('+', t.tag);
+
+
+        t = lexer.scan();
+        Assertions.assertEquals(Tag.NUM, t.tag);
+        Assertions.assertEquals(1, ((Num) t).value);
+
+        t = lexer.scan();
+        Assertions.assertEquals('/', t.tag);
+
+        t = lexer.scan();
+        a = .21f;
+        b = ((Floating) t).value;
+        Assertions.assertTrue(Math.abs(a - b) < precisionRange);
+    }
+
 }

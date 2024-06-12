@@ -139,7 +139,13 @@ public class Lexer {
      * and peek should be set to the next char to be processed(blank will be ignored on the next call).
      * </p>
      * <p>
-     * Note: peek is set to blank instead of reading next char just in case peek is eof.
+     * Note:
+     * <p>
+     * <li>peek is set to blank instead of reading next char just in case peek is eof.</li>
+     * <li>the char is skipped when case fails, must process fail result using the result of this method
+     * (like case in scan).
+     * </li>
+     * </p>
      *
      * @param c character to expect and compare
      * @return result of matching
@@ -181,11 +187,12 @@ public class Lexer {
         skipWhiteSpace();
         ignoreComments();
 
-        if (Character.isDigit(peek)) {
-            return scanNum();
-        }
         if (Character.isLetter(peek)) {
             return scanWord();
+        }
+
+        if (Character.isDigit(peek) || peek == '.') {
+            return scanNum();
         }
 
         return switch (peek) {
@@ -293,16 +300,30 @@ public class Lexer {
      * Continuously reads digits from the standard input stream to form a number.
      * Only recognizes positive integers, signs are not supported as of now.
      *
-     * @return the number scanned.
+     * @return the number scanned, a Floating Point Number or Integer.
      * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private @NotNull Num scanNum() throws IOException {
-        int v = 0;
-        do {
-            v = v * 10 + Character.digit(peek, 10);
+    private @NotNull Token scanNum() throws IOException {
+        int n = 0;
+
+        if (peek != '.') {
+            do {
+                n = n * 10 + Character.digit(peek, 10);
+                readCh();
+            } while (Character.isDigit(peek));
+            if (peek != '.') return new Num(n);
+        }
+
+        readCh();
+        float f = n;
+        int d = 10;
+        // initial test is crucial for left only floating point (12.)
+        while (Character.isDigit(peek)) {
+            f = f + ((float) Character.digit(peek, 10) / d);
+            d *= 10;
             readCh();
-        } while (Character.isDigit(peek));
-        return new Num(v);
+        }
+        return new Floating(f);
     }
 
     /**
@@ -349,9 +370,8 @@ public class Lexer {
      * </p>
      *
      * @return the Token representing the character.
-     * @throws IOException if this input stream has been closed by invoking its close() method, or an I/ O error occurs.
      */
-    private @NotNull Token scanChar() throws IOException {
+    private @NotNull Token scanChar() {
         Token t = new Token(peek);
         peek = ' ';
         return t;
