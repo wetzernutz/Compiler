@@ -288,6 +288,7 @@ public class Lexer {
             switch (peek) {
                 case ('*'):
                     if (readCh('/')) break outerLoop;
+                    break;
                 case ('\n'):
                     line += 1;
                 default:

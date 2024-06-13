@@ -387,4 +387,20 @@ public class LexerTest {
         Assertions.assertTrue(Math.abs(a - b) < precisionRange);
     }
 
+    @Test
+    void testLineNumber() throws IOException {
+        String input = "\n 2 \n\n 4 /* \n\n* */ 6 // bob \n 7";
+        setInput(input);
+
+        Assertions.assertEquals(1, lexer.line);
+        lexer.scan();
+        Assertions.assertEquals(2, lexer.line);
+        lexer.scan();
+        Assertions.assertEquals(4, lexer.line);
+        Token t = lexer.scan();
+        Assertions.assertEquals(6, lexer.line);
+        lexer.scan();
+        Assertions.assertEquals(7, lexer.line);
+    }
+
 }
