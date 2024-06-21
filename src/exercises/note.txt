@@ -1,0 +1,14 @@
+for lex2.l as example.
+
+it is suppose to go through a input file and write it to output.txt.
+
+use the following commands to run lex2.l on input.txt.
+
+compile lex2.l into lex.yy.c:
+lex lex2.l
+
+compile lex.yy.c into an executable called lexer using the gcc c compiler with lex lib:
+gcc lex.yy.c -o lexer -ll
+
+direct the input file input.txt into the executable to run it as input:
+./lexer < input.txt
